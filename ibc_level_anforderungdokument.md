@@ -36,7 +36,7 @@ Pin-Belegungen und MQTT-Adresse: `src/globals.h`.
 **Anzeige:**
 
 - Groß: Füllstand nur in %
-- Klein (oben rechts): WLAN-Status als Symbol oder Text
+- Klein (oben links): WLAN-Status als Symbol oder Text
 
 **Aktualisierung:** jede Minute (entspricht dem Messintervall)
 
@@ -55,11 +55,12 @@ Füllstand_%  = Füllhöhe_cm / 90 × 100
 ```
 
 Beispiele:
+
 | Messwert | Füllhöhe | Füllstand |
 |----------|----------|-----------|
-| 5 cm | 90 cm | 100 % |
-| 50 cm | 45 cm | 50 % |
-| 95 cm | 0 cm | 0 % |
+| 5 cm     | 90 cm    | 100 %     |
+| 50 cm    | 45 cm    | 50 %      |
+| 95 cm    | 0 cm     | 0 %       |
 
 **Messintervall:** alle 60 Sekunden
 
