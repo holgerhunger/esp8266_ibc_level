@@ -12,6 +12,10 @@ auto MQTT_TOPIC = "keller/ibc_level";
 #define SDA 4
 #define SCL 5
 
+// HC-SR04
+#define TRIGGER_PIN 14
+#define ECHO_PIN 13
+
 // Onboard LED
 #define LED 2
 #define LED_ON LOW

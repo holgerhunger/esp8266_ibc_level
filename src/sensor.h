@@ -1,55 +1,61 @@
 #ifndef SENSOR_H
 #define SENSOR_H
 
-#include <Wire.h>
-#include <VL53L0X.h>
+#include <Arduino.h>
+#include "globals.h"
 
 class IbcSensor {
 public:
     bool begin() {
-        _sensor.setTimeout(500);
-        if (!_sensor.init()) {
-            Serial.println("Failed to detect and initialize sensor!");
-            return false;
-        }
-        // lower the return signal rate limit (default is 0.25 MCPS)
-        _sensor.setSignalRateLimit(0.1);
-        // increase laser pulse periods (defaults are 14 and 10 PCLKs)
-        _sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-        _sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-        _sensor.setMeasurementTimingBudget(200000);
+        pinMode(TRIGGER_PIN, OUTPUT);
+        pinMode(ECHO_PIN, INPUT);
+        digitalWrite(TRIGGER_PIN, LOW);
+        delay(50);
         return true;
     }
 
     // Gibt Abstand in cm zurück, -1 bei Fehler
     int readCm() {
-        // Versuch die Daten zu glätten
-        int data;
-        int mm = 0;
-        for (int i = 0; i < 15; i++) {
-            delay(2);
-            data = _sensor.readRangeSingleMillimeters();
-            if (data == 8190) { continue; }
-            if (mm == 0) { mm = data; } else { mm = (mm + data) / 2; }
+        long total = 0;
+        int count = 0;
+
+        for (int i = 0; i < SAMPLES; i++) {
+            long cm = measure();
+            if (cm > 0) {
+                total += cm;
+                count++;
+            }
+            delay(30);
         }
 
-        if (_sensor.timeoutOccurred()) {
-            Serial.println("Sensor: kein Signal");
+        if (count == 0) {
+            Serial.println("Sensor: kein Echo");
             return -1;
         }
 
-        int cm = (mm - CALIBRATION_OFFSET_MM) / 10;
+        int cm = total / count;
         Serial.print("Sensor: ");
         Serial.print(cm);
-        Serial.print(" cm   ");
-        Serial.print(mm);
-        Serial.println(" mm");
+        Serial.println(" cm");
         return cm;
     }
 
 private:
-    static constexpr int CALIBRATION_OFFSET_MM = 0; // Sensor liest systematisch 5 cm zuviel
-    VL53L0X _sensor;
+    static constexpr int SAMPLES = 5;
+
+    long measure() {
+        digitalWrite(TRIGGER_PIN, LOW);
+        delayMicroseconds(2);
+        digitalWrite(TRIGGER_PIN, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(TRIGGER_PIN, LOW);
+
+        // Timeout 30ms entspricht ~5m, mehr als genug für IBC
+        long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+        if (duration == 0) return 0;
+
+        return duration / 58;  // µs → cm (Schall hin+zurück: 343m/s → /58.3)
+    }
 };
 
 #endif // SENSOR_H

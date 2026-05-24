@@ -24,7 +24,6 @@ void setup() {
 
 void loop() {
     int cm = sensor.readCm();
-    // int percent = (cm > 0) ? constrain((95 - cm) * 100 / 90, 0, 100) : 0;
     bool dummyWifi = true;
 
     display.show(cm, dummyWifi);
