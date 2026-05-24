@@ -12,6 +12,14 @@
 IbcDisplay display;
 IbcSensor sensor;
 
+void publish(int cm) {
+    JsonDocument doc;
+    doc["cm"] = cm;
+    char buf[32];
+    serializeJson(doc, buf);
+    client.publish(MQTT_TOPIC, buf);
+}
+
 void setup() {
     Serial.begin(115200);
     pinMode(LED, OUTPUT);
@@ -20,13 +28,25 @@ void setup() {
     Wire.begin(SDA, SCL);
     display.begin();
     sensor.begin();
+
+    connectAP();
+    client.setServer(MQTT_HOST, MQTT_PORT);
+    client.setCallback(callback);
 }
 
 void loop() {
-    int cm = sensor.readCm();
-    bool dummyWifi = true;
+    if (!client.connected()) {
+        reconnect();
+    }
+    client.loop();
 
-    display.show(cm, dummyWifi);
+    int cm = sensor.readCm();
+    bool wifiOk = (WiFi.status() == WL_CONNECTED);
+
+    display.show(cm, wifiOk);
+    if (cm > 0) {
+        publish(cm);
+    }
 
     delay(2000);
 }
