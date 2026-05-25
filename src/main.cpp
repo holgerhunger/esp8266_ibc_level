@@ -14,17 +14,18 @@ IbcDisplay display;
 IbcSensor sensor;
 LdrSensor ldr;
 
-void publish(int cm, int adc) {
+void publish(int level, int pct, int adc) {
     JsonDocument doc;
-    doc["cm"] = cm;
+    doc["cm"] = level;
+    doc["pct"] = pct;
     doc["adc"] = adc;
-    char buf[48];
+    char buf[64];
     serializeJson(doc, buf);
     client.publish(MQTT_TOPIC, buf);
 }
 
 void setup() {
-    Serial.begin(115200);
+    //Serial.begin(115200);
     pinMode(LED, OUTPUT);
     digitalWrite(LED, LED_OFF);
 
@@ -46,16 +47,17 @@ void loop() {
 
     int raw = sensor.readCm();
     int level = (raw > 0) ? constrain(TANK_SENSOR_HEIGHT_CM - raw, 0, TANK_SENSOR_HEIGHT_CM) : -1;
+    int pct = (level >= 0) ? constrain(level * 100 / TANK_OVERFLOW_CM, 0, 100) : -1;
     int adc = ldr.readRaw();
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
     bool displayOn = (adc <= LDR_DARK_THRESHOLD);
 
     display.setPower(displayOn);
     if (displayOn) {
-        display.show(level, wifiOk);
+        display.show(pct, wifiOk);
     }
     if (level >= 0) {
-        publish(level, adc);
+        publish(level, pct, adc);
     }
 
     delay(2000);

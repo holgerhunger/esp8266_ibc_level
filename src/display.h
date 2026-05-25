@@ -16,7 +16,7 @@ public:
         _display.ssd1306_command(on ? SSD1306_DISPLAYON : SSD1306_DISPLAYOFF);
     }
 
-    void show(int cm, bool wifiOk) {
+    void show(int pct, bool wifiOk) {
         _display.clearDisplay();
 
         _display.setTextSize(1);
@@ -25,11 +25,11 @@ public:
 
         _display.setTextSize(3);
         _display.setCursor(10, 22);
-        if (cm < 0) {
+        if (pct < 0) {
             _display.print("---");
         } else {
-            _display.print(cm);
-            _display.print("cm");
+            _display.print(pct);
+            _display.print("%");
         }
 
         _display.display();

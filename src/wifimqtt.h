@@ -20,20 +20,20 @@ PubSubClient client(espClient);
 
 inline void connectAP() {
     digitalWrite(LED, LED_ON);
-    Serial.print("Verbinde mit WLAN Netzwerk SSID: ");
-    Serial.print(WLAN_SSID);
-    Serial.print(" ");
+    //Serial.print("Verbinde mit WLAN Netzwerk SSID: ");
+    //Serial.print(WLAN_SSID);
+    //Serial.print(" ");
     WiFi.begin(WLAN_SSID, WLAN_PASSWORD);
     byte cnt = 0;
     while (WiFi.status() != WL_CONNECTED) {
-        Serial.print("*");
+        //Serial.print("*");
         cnt++;
         if (cnt > 30) { ESP.restart(); }
         delay(WLAN_CONNECT_WAIT);
     }
-    Serial.println(" WLAN verbunden!");
-    Serial.print("Lokale IP Adresse: ");
-    Serial.println(WiFi.localIP());
+    //Serial.println(" WLAN verbunden!");
+    //Serial.print("Lokale IP Adresse: ");
+    //Serial.println(WiFi.localIP());
     digitalWrite(LED, LED_OFF);
 }
 
@@ -41,18 +41,18 @@ inline void reconnect() {
     byte cnt = 0;
     while (!client.connected()) {
         digitalWrite(LED, LED_ON);
-        Serial.print("Verbinde mit MQTT Broker .. ");
+        //Serial.print("Verbinde mit MQTT Broker .. ");
         clientID += String(random(0xffff), HEX);
         if (client.connect(clientID.c_str(), MQTT_USER, MQTT_PASSWORD)) {
-            Serial.println("Mit MQTT verbunden!");
+            //Serial.println("Mit MQTT verbunden!");
             digitalWrite(LED, LED_OFF);
             // client.subscribe(MQTT_TOPIC);
             // client.subscribe("ledState");
             // client.subscribe("testJSON");
         } else {
-            Serial.print("fehlgeschlagen, rc=");
-            Serial.print(client.state());
-            Serial.println(" versuche es in 5 Sek nochmal.");
+            //Serial.print("fehlgeschlagen, rc=");
+            //Serial.print(client.state());
+            //Serial.println(" versuche es in 5 Sek nochmal.");
             digitalWrite(LED, LED_ON);
             if (WiFi.status() != WL_CONNECTED) { connectAP(); }
             cnt++;
@@ -63,18 +63,18 @@ inline void reconnect() {
 }
 
 inline void callback(char *topic, byte *message, unsigned int length) {
-    Serial.print("Message arrived on topic: ");
-    Serial.print(topic);
-    Serial.print(". Message: ");
+    //Serial.print("Message arrived on topic: ");
+    //Serial.print(topic);
+    //Serial.print(". Message: ");
     String messageTemp;
     for (int i = 0; i < length; i++) {
         messageTemp += static_cast<char>(message[i]);
     }
-    Serial.println(messageTemp);
+    //Serial.println(messageTemp);
 
     if (String(topic) == "test") {
-        Serial.print("From test topic : ");
-        Serial.println(messageTemp);
+        //Serial.print("From test topic : ");
+        //Serial.println(messageTemp);
     } else if (String(topic) == "ledState") {
         if (messageTemp == "on") {
             digitalWrite(LED, LED_ON);
@@ -93,29 +93,24 @@ inline void callback(char *topic, byte *message, unsigned int length) {
 
         // Test if parsing succeeds.
         if (error) {
-            Serial.print(F("deserializeJson() failed: "));
-            Serial.println(error.f_str());
+            //Serial.print(F("deserializeJson() failed: "));
+            //Serial.println(error.f_str());
             return;
         }
 
-        // Fetch values.
-        //
-        // Most of the time, you can rely on the implicit casts.
-        // In other case, you can do doc["time"].as<long>();
         const char *device = doc["device"];
         int temperature = doc["temperature"];
         int humidity = doc["humidity"];
         int lux = doc["lux"];
 
-        // Print values.
-        Serial.print("From test topic : ");
-        Serial.print(device);
-        Serial.print(" ; ");
-        Serial.print(temperature);
-        Serial.print(" ; ");
-        Serial.print(humidity);
-        Serial.print(" ; ");
-        Serial.println(lux);
+        //Serial.print("From test topic : ");
+        //Serial.print(device);
+        //Serial.print(" ; ");
+        //Serial.print(temperature);
+        //Serial.print(" ; ");
+        //Serial.print(humidity);
+        //Serial.print(" ; ");
+        //Serial.println(lux);
     }
 }
 

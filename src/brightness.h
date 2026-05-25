@@ -19,8 +19,8 @@ public:
             delay(5);
         }
         int raw = total / SAMPLES;
-        Serial.print("LDR: ");
-        Serial.println(raw);
+        //Serial.print("LDR: ");
+        //Serial.println(raw);
         return raw;
     }
 

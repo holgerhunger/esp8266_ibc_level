@@ -29,14 +29,14 @@ public:
         }
 
         if (count == 0) {
-            Serial.println("Sensor: kein Echo");
+            //Serial.println("Sensor: kein Echo");
             return -1;
         }
 
         int cm = total / count;
-        Serial.print("Sensor: ");
-        Serial.print(cm);
-        Serial.println(" cm");
+        //Serial.print("Sensor: ");
+        //Serial.print(cm);
+        //Serial.println(" cm");
         return cm;
     }
 
