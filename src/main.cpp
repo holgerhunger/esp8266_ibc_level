@@ -8,14 +8,17 @@
 #include "wifimqtt.h"
 #include "display.h"
 #include "sensor.h"
+#include "brightness.h"
 
 IbcDisplay display;
 IbcSensor sensor;
+LdrSensor ldr;
 
-void publish(int cm) {
+void publish(int cm, int adc) {
     JsonDocument doc;
     doc["cm"] = cm;
-    char buf[32];
+    doc["adc"] = adc;
+    char buf[48];
     serializeJson(doc, buf);
     client.publish(MQTT_TOPIC, buf);
 }
@@ -28,6 +31,7 @@ void setup() {
     Wire.begin(SDA, SCL);
     display.begin();
     sensor.begin();
+    ldr.begin();
 
     connectAP();
     client.setServer(MQTT_HOST, MQTT_PORT);
@@ -40,12 +44,18 @@ void loop() {
     }
     client.loop();
 
-    int cm = sensor.readCm();
+    int raw = sensor.readCm();
+    int level = (raw > 0) ? constrain(TANK_SENSOR_HEIGHT_CM - raw, 0, TANK_SENSOR_HEIGHT_CM) : -1;
+    int adc = ldr.readRaw();
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
+    bool displayOn = (adc <= LDR_DARK_THRESHOLD);
 
-    display.show(cm, wifiOk);
-    if (cm > 0) {
-        publish(cm);
+    display.setPower(displayOn);
+    if (displayOn) {
+        display.show(level, wifiOk);
+    }
+    if (level >= 0) {
+        publish(level, adc);
     }
 
     delay(2000);

@@ -12,6 +12,10 @@ public:
         _display.setTextColor(SSD1306_WHITE);
     }
 
+    void setPower(bool on) {
+        _display.ssd1306_command(on ? SSD1306_DISPLAYON : SSD1306_DISPLAYOFF);
+    }
+
     void show(int cm, bool wifiOk) {
         _display.clearDisplay();
 

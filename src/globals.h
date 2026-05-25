@@ -23,4 +23,11 @@ auto MQTT_TOPIC = "keller/ibc_level";
 
 #define WLAN_CONNECT_WAIT 1000
 
+// LDR: ADC-Wert ab dem das Display abgeschaltet wird (dunkel = hoher Wert)
+#define LDR_DARK_THRESHOLD 750
+
+// IBC-Geometrie (cm)
+#define TANK_SENSOR_HEIGHT_CM 106   // Abstand Behälterboden bis Sensor
+#define TANK_OVERFLOW_CM      88    // Füllstand bei dem der Behälter überläuft
+
 #endif //GLOBALS_H
