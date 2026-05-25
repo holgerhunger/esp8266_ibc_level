@@ -46,7 +46,7 @@ Open items:
 | MCU | AZ-Delivery ESP8266 D1 Mini |
 | Distance sensor | HC-SR04 (Trigger=GPIO14, Echo=GPIO13) |
 | Brightness sensor | LDR5528 on A0; divider: 3.3V — 100k — A0 — LDR — GND |
-| Display | 0.66" SSD1306 OLED D1 Mini shield (same I2C bus) |
+| Display | AZ-Delivery 0.96" SSD1306 OLED 128×64 (I2C: GND/VCC/SCL/SDA) |
 | Onboard LED | GPIO2, active LOW |
 | MQTT broker | Public IP, port 1883 (credentials in `myConfig.h`) |
 

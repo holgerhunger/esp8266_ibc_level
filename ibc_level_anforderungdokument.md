@@ -1,7 +1,9 @@
 # Projektübersicht
 
 IoT-Füllstandssensor zum Überwachen von 3× 1000-Liter-IBC-Containern.
+Die Container stehen in einem Keller.
 Die drei Container sind untereinander verbunden, daher wird nur ein Sensor an einem Container benötigt.
+An einem Behälter ist ein Loch mit Leitung zu einem Gulli als Überlauf.
 Ausgabe auf Display und Datenübertragung über WLAN an einen MQTT-Server.
 
 Der Sensor wird oberhalb des Containerrandes angebracht und misst den Abstand zur Wasseroberfläche.
@@ -32,17 +34,17 @@ Pin-Belegungen, Schwellwerte und Intervalle: `src/globals.h`.
 
 ## C. Display
 
-**Hardware:** 0,66"-OLED-Display mit SSD1306-Treiber-IC (D1-Mini-Shield-Format, I2C)
+**Hardware:** AZ-Delivery 0,96"-OLED-Display mit SSD1306-Treiber-IC (128×64 Pixel, I2C: GND/VCC/SCL/SDA)
 
 **Anzeige:**
 
 - Groß: Füllstand in %
 - Klein (oben links): WLAN-Status als Text
 
-**Energiesparmodus:** Das Display wird über den LDR-Helligkeitssensor (siehe G) gesteuert.
-Bei Dunkelheit (ADC > `LDR_DARK_THRESHOLD` = 750) wird das Display per SSD1306-Befehl
-vollständig abgeschaltet (`SSD1306_DISPLAYOFF`). Bei ausreichend Helligkeit schaltet es sich
-wieder ein.
+**Lebensdauerschutz:** OLED-Pixel altern bei Dauerbetrieb. Daher wird das Display über den
+LDR-Helligkeitssensor (siehe G) gesteuert: Bei Dunkelheit (ADC > `LDR_DARK_THRESHOLD` = 750)
+wird es per SSD1306-Befehl vollständig abgeschaltet (`SSD1306_DISPLAYOFF`). Bei ausreichend
+Helligkeit schaltet es sich wieder ein.
 
 **Aktualisierung:** alle 5 Sekunden, solange Display eingeschaltet.
 
@@ -56,10 +58,10 @@ Pro Messung werden 5 Einzelwerte gemittelt.
 
 **Geometrie-Konstanten (`globals.h`):**
 
-| Konstante | Wert | Bedeutung |
-| --- | --- | --- |
-| `TANK_SENSOR_HEIGHT_CM` | 106 cm | Abstand Behälterboden bis Sensor |
-| `TANK_OVERFLOW_CM` | 88 cm | Füllstand bei dem der Behälter überläuft (= 100 %) |
+| Konstante               | Wert   | Bedeutung                                          |
+|-------------------------|--------|----------------------------------------------------|
+| `TANK_SENSOR_HEIGHT_CM` | 106 cm | Abstand Behälterboden bis Sensor                   |
+| `TANK_OVERFLOW_CM`      | 88 cm  | Füllstand bei dem der Behälter überläuft (= 100 %) |
 
 **Berechnung:**
 
@@ -71,10 +73,10 @@ pct       = level_cm × 100 / TANK_OVERFLOW_CM      // 0–100 %
 Beispiele:
 
 | Messwert (Sensor) | Füllstand (cm) | Füllstand (%) |
-| --- | --- | --- |
-| 18 cm | 88 cm | 100 % |
-| 53 cm | 53 cm | 60 % |
-| 106 cm | 0 cm | 0 % |
+|-------------------|----------------|---------------|
+| 18 cm             | 88 cm          | 100 %         |
+| 53 cm             | 53 cm          | 60 %          |
+| 106 cm            | 0 cm           | 0 %           |
 
 ## E. WLAN
 
@@ -101,10 +103,10 @@ Beispiele:
 }
 ```
 
-| Feld | Bedeutung |
-| --- | --- |
-| `cm` | Füllstand in cm ab Behälterboden |
-| `pct` | Füllstand in Prozent (0–100) |
+| Feld  | Bedeutung                                   |
+|-------|---------------------------------------------|
+| `cm`  | Füllstand in cm ab Behälterboden            |
+| `pct` | Füllstand in Prozent (0–100)                |
 | `adc` | Rohwert des LDR-Helligkeitssensors (0–1023) |
 
 *(Liter-Feld wird in einer späteren Version ergänzt)*
@@ -117,11 +119,11 @@ Beispiele:
 Der ADC-Wert steigt bei Dunkelheit (hoher LDR-Widerstand → höhere Spannung an A0).
 Pro Messung werden 4 Einzelwerte gemittelt.
 
-| ADC-Wert | Bedeutung |
-| --- | --- |
-| 0 | sehr hell |
+| ADC-Wert                   | Bedeutung                       |
+|----------------------------|---------------------------------|
+| 0                          | sehr hell                       |
 | 750 (`LDR_DARK_THRESHOLD`) | Schwellwert Display-Abschaltung |
-| 1023 | sehr dunkel |
+| 1023                       | sehr dunkel                     |
 
 # Mess- und Publish-Logik
 
@@ -129,11 +131,11 @@ Der Haupt-Loop läuft mit einem festen Takt von 5 Sekunden (`DISPLAY_INTERVAL_MS
 Messen und Publishen erfolgt abhängig vom Display-Zustand und dem MQTT-Timer:
 
 | Display-Zustand | Zeit seit letztem Publish | Sensor messen | Display aktualisieren | MQTT senden |
-| --- | --- | --- | --- | --- |
-| AN | < 5 Minuten | ✓ | ✓ | – |
-| AN | ≥ 5 Minuten | ✓ | ✓ | ✓ |
-| AUS | < 5 Minuten | – | – | – |
-| AUS | ≥ 5 Minuten | ✓ | – | ✓ |
+|-----------------|---------------------------|---------------|-----------------------|-------------|
+| AN              | < 5 Minuten               | ✓             | ✓                     | –           |
+| AN              | ≥ 5 Minuten               | ✓             | ✓                     | ✓           |
+| AUS             | < 5 Minuten               | –             | –                     | –           |
+| AUS             | ≥ 5 Minuten               | ✓             | –                     | ✓           |
 
 Beim Start wird `lastPublish` so initialisiert, dass das erste MQTT-Publish sofort beim
 ersten Loop-Durchlauf erfolgt.
