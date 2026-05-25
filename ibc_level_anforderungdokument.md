@@ -1,11 +1,12 @@
 # Projektübersicht
 
-IoT-Entfernungssensor zum Überwachen des Füllstandes von 3× 1000-Liter-IBC-Containern.
+IoT-Füllstandssensor zum Überwachen von 3× 1000-Liter-IBC-Containern.
 Die drei Container sind untereinander verbunden, daher wird nur ein Sensor an einem Container benötigt.
 Ausgabe auf Display und Datenübertragung über WLAN an einen MQTT-Server.
 
-Die Füllhöhe im Container beträgt ca. 90 cm. Der Sensor wird ca. 5 cm oberhalb des Containerrandes angebracht.
-Berechnet wird der Füllstand in Prozent (0–100 %) und Zentimeter. Liter-Berechnung ist für später vorgesehen.
+Der Sensor wird oberhalb des Containerrandes angebracht und misst den Abstand zur Wasseroberfläche.
+Berechnet wird der Füllstand in Zentimeter ab Boden und in Prozent (0–100 %).
+Liter-Berechnung ist für später vorgesehen.
 
 # Techstack
 
@@ -15,7 +16,7 @@ Berechnet wird der Füllstand in Prozent (0–100 %) und Zentimeter. Liter-Berec
 
 Datenblätter befinden sich im Ordner `data-sheets/`.  
 Zugangsdaten für WLAN und MQTT-Server: `src/myConfig.h` (nicht im Git).  
-Pin-Belegungen und MQTT-Adresse: `src/globals.h`.
+Pin-Belegungen, Schwellwerte und Intervalle: `src/globals.h`.
 
 # Einzelne Programm-Abschnitte
 
@@ -26,7 +27,7 @@ Pin-Belegungen und MQTT-Adresse: `src/globals.h`.
 ## B. LED (Onboard, GPIO2, active LOW)
 
 - Leuchtet dauerhaft, solange keine WLAN-Verbindung besteht.
-- Blinkt kurz beim Auslesen des Sensors und beim Senden einer MQTT-Nachricht.
+- Leuchtet während MQTT-Verbindungsaufbau.
 - Zukünftig ggf. auch externe LED.
 
 ## C. Display
@@ -35,57 +36,104 @@ Pin-Belegungen und MQTT-Adresse: `src/globals.h`.
 
 **Anzeige:**
 
-- Groß: Füllstand nur in %
-- Klein (oben links): WLAN-Status als Symbol oder Text
+- Groß: Füllstand in %
+- Klein (oben links): WLAN-Status als Text
 
-**Aktualisierung:** jede Minute (entspricht dem Messintervall)
+**Energiesparmodus:** Das Display wird über den LDR-Helligkeitssensor (siehe G) gesteuert.
+Bei Dunkelheit (ADC > `LDR_DARK_THRESHOLD` = 750) wird das Display per SSD1306-Befehl
+vollständig abgeschaltet (`SSD1306_DISPLAYOFF`). Bei ausreichend Helligkeit schaltet es sich
+wieder ein.
+
+**Aktualisierung:** alle 5 Sekunden, solange Display eingeschaltet.
 
 ## D. Sensor
 
-**Hardware:** VL53L0X Laser-Distanz-Sensormodul (I2C, SDA=GPIO4, SCL=GPIO5)
+**Hardware:** HC-SR04 Ultraschall-Distanzsensor (Trigger=GPIO14, Echo=GPIO13)
 
-**Messprinzip:** Der Sensor misst den Abstand von der Sensorunterkante zur Wasseroberfläche.
+**Messprinzip:** Der Sensor misst den Abstand von seiner Unterseite zur Wasseroberfläche.
 Da die drei IBCs kommunizierend verbunden sind, ist der Füllstand in allen gleich.
+Pro Messung werden 5 Einzelwerte gemittelt.
+
+**Geometrie-Konstanten (`globals.h`):**
+
+| Konstante | Wert | Bedeutung |
+| --- | --- | --- |
+| `TANK_SENSOR_HEIGHT_CM` | 106 cm | Abstand Behälterboden bis Sensor |
+| `TANK_OVERFLOW_CM` | 88 cm | Füllstand bei dem der Behälter überläuft (= 100 %) |
 
 **Berechnung:**
 
 ```
-Füllhöhe_cm  = 90 − (Messwert_cm − 5)   // = 95 − Messwert_cm
-Füllstand_%  = Füllhöhe_cm / 90 × 100
+level_cm  = TANK_SENSOR_HEIGHT_CM − Messwert_cm   // Füllstand ab Boden
+pct       = level_cm × 100 / TANK_OVERFLOW_CM      // 0–100 %
 ```
 
 Beispiele:
 
-| Messwert | Füllhöhe | Füllstand |
-|----------|----------|-----------|
-| 5 cm     | 90 cm    | 100 %     |
-| 50 cm    | 45 cm    | 50 %      |
-| 95 cm    | 0 cm     | 0 %       |
-
-**Messintervall:** alle 60 Sekunden
+| Messwert (Sensor) | Füllstand (cm) | Füllstand (%) |
+| --- | --- | --- |
+| 18 cm | 88 cm | 100 % |
+| 53 cm | 53 cm | 60 % |
+| 106 cm | 0 cm | 0 % |
 
 ## E. WLAN
 
 - Verbindung mit hinterlegtem SSID/Passwort (`myConfig.h`).
 - LED leuchtet dauerhaft während kein WLAN besteht.
 - Bei Verbindungsabbruch: automatischer Wiederverbindungsversuch.
-- Nach 15 Fehlversuchen: ESP-Neustart.
+- Nach 30 Fehlversuchen beim WLAN-Aufbau bzw. 10 beim MQTT-Aufbau: ESP-Neustart.
 - Bei WLAN-Ausfall werden Messwerte verworfen (kein lokales Puffern).
 
 ## F. MQTT
 
 **Broker:** Externer Server (Zugangsdaten in `myConfig.h`)  
 **Topic:** `keller/ibc_level`  
-**Sendezyklus:** alle 5 Minuten  
+**Sendezyklus:** alle 5 Minuten (`MQTT_INTERVAL_MS` = 300 000 ms)  
 **QoS:** 0 (Fire and forget)
 
 **Datenformat:** JSON als String
 
 ```json
 {
-  "cm": 45,
-  "percent": 50
+  "cm": 53,
+  "pct": 60,
+  "adc": 312
 }
 ```
 
+| Feld | Bedeutung |
+| --- | --- |
+| `cm` | Füllstand in cm ab Behälterboden |
+| `pct` | Füllstand in Prozent (0–100) |
+| `adc` | Rohwert des LDR-Helligkeitssensors (0–1023) |
+
 *(Liter-Feld wird in einer späteren Version ergänzt)*
+
+## G. Helligkeitssensor
+
+**Hardware:** LDR5528 an ADC-Eingang A0  
+**Schaltung:** 3,3 V — 100 kΩ — A0 — LDR — GND
+
+Der ADC-Wert steigt bei Dunkelheit (hoher LDR-Widerstand → höhere Spannung an A0).
+Pro Messung werden 4 Einzelwerte gemittelt.
+
+| ADC-Wert | Bedeutung |
+| --- | --- |
+| 0 | sehr hell |
+| 750 (`LDR_DARK_THRESHOLD`) | Schwellwert Display-Abschaltung |
+| 1023 | sehr dunkel |
+
+# Mess- und Publish-Logik
+
+Der Haupt-Loop läuft mit einem festen Takt von 5 Sekunden (`DISPLAY_INTERVAL_MS`).
+Messen und Publishen erfolgt abhängig vom Display-Zustand und dem MQTT-Timer:
+
+| Display-Zustand | Zeit seit letztem Publish | Sensor messen | Display aktualisieren | MQTT senden |
+| --- | --- | --- | --- | --- |
+| AN | < 5 Minuten | ✓ | ✓ | – |
+| AN | ≥ 5 Minuten | ✓ | ✓ | ✓ |
+| AUS | < 5 Minuten | – | – | – |
+| AUS | ≥ 5 Minuten | ✓ | – | ✓ |
+
+Beim Start wird `lastPublish` so initialisiert, dass das erste MQTT-Publish sofort beim
+ersten Loop-Durchlauf erfolgt.
