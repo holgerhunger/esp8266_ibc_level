@@ -14,7 +14,7 @@ IbcDisplay display;
 IbcSensor sensor;
 LdrSensor ldr;
 
-unsigned long lastPublish = -MQTT_INTERVAL_MS;  // erstes Publish sofort auslösen
+unsigned long lastPublish = -MQTT_INTERVAL_MS; // erstes Publish sofort auslösen
 
 void publish(int level, int pct, int adc) {
     JsonDocument doc;
@@ -33,6 +33,7 @@ void setup() {
 
     Wire.begin(SDA, SCL);
     display.begin();
+    display.show(-1, false);
     sensor.begin();
     ldr.begin();
 

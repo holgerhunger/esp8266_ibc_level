@@ -7,6 +7,7 @@ An einem Behälter ist ein Loch mit Leitung zu einem Gulli als Überlauf.
 Ausgabe auf Display und Datenübertragung über WLAN an einen MQTT-Server.
 
 Der Sensor wird oberhalb des Containerrandes angebracht und misst den Abstand zur Wasseroberfläche.
+Falls der Sensor nicht sehr lange hält, wird er noch durch einen Wasserdichten ersetzt.
 Berechnet wird der Füllstand in Zentimeter ab Boden und in Prozent (0–100 %).
 Liter-Berechnung ist für später vorgesehen.
 
