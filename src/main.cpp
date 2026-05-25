@@ -14,6 +14,8 @@ IbcDisplay display;
 IbcSensor sensor;
 LdrSensor ldr;
 
+unsigned long lastPublish = -MQTT_INTERVAL_MS;  // erstes Publish sofort auslösen
+
 void publish(int level, int pct, int adc) {
     JsonDocument doc;
     doc["cm"] = level;
@@ -45,20 +47,27 @@ void loop() {
     }
     client.loop();
 
-    int raw = sensor.readCm();
-    int level = (raw > 0) ? constrain(TANK_SENSOR_HEIGHT_CM - raw, 0, TANK_SENSOR_HEIGHT_CM) : -1;
-    int pct = (level >= 0) ? constrain(level * 100 / TANK_OVERFLOW_CM, 0, 100) : -1;
+    unsigned long now = millis();
     int adc = ldr.readRaw();
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
     bool displayOn = (adc <= LDR_DARK_THRESHOLD);
+    bool timeToPublish = (now - lastPublish >= MQTT_INTERVAL_MS);
 
     display.setPower(displayOn);
-    if (displayOn) {
-        display.show(pct, wifiOk);
-    }
-    if (level >= 0) {
-        publish(level, pct, adc);
+
+    if (displayOn || timeToPublish) {
+        int raw = sensor.readCm();
+        int level = (raw > 0) ? constrain(TANK_SENSOR_HEIGHT_CM - raw, 0, TANK_SENSOR_HEIGHT_CM) : -1;
+        int pct = (level >= 0) ? constrain(level * 100 / TANK_OVERFLOW_CM, 0, 100) : -1;
+
+        if (displayOn) {
+            display.show(pct, wifiOk);
+        }
+        if (timeToPublish && level >= 0) {
+            publish(level, pct, adc);
+            lastPublish = now;
+        }
     }
 
-    delay(2000);
+    delay(DISPLAY_INTERVAL_MS);
 }

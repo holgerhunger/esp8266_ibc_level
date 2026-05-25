@@ -23,6 +23,9 @@ auto MQTT_TOPIC = "keller/ibc_level";
 
 #define WLAN_CONNECT_WAIT 1000
 
+#define DISPLAY_INTERVAL_MS  5000UL    // Mess- und Anzeigetakt wenn Display AN
+#define MQTT_INTERVAL_MS     300000UL  // MQTT-Publish-Intervall (5 Minuten)
+
 // LDR: ADC-Wert ab dem das Display abgeschaltet wird (dunkel = hoher Wert)
 #define LDR_DARK_THRESHOLD 750
 
