@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <ArduinoJson.h>
 #include "globals.h"
 #include "wifimqtt.h"
 #include "display.h"
@@ -39,7 +40,6 @@ void setup() {
 
     connectAP();
     client.setServer(MQTT_HOST, MQTT_PORT);
-    client.setCallback(callback);
 }
 
 void loop() {

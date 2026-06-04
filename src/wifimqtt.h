@@ -8,15 +8,14 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
-#include <ArduinoJson.h>
 #include "myConfig.h"
 #include "globals.h"
 
 // MQTT
-String clientID = "ESP8266-IBC";
+inline String clientID = "ESP8266-IBC";
 // String clientID = "ESP32-";
-WiFiClient espClient;
-PubSubClient client(espClient);
+inline WiFiClient espClient;
+inline PubSubClient client(espClient);
 
 // Beim Boot: WLAN-Verbindung versuchen, aber bei Misserfolg NICHT neu starten,
 // damit das Gerät auch ohne WLAN hochfährt und das Display Werte anzeigt.
@@ -27,7 +26,8 @@ inline void connectAP() {
     byte cnt = 0;
     while (WiFi.status() != WL_CONNECTED) {
         cnt++;
-        if (cnt > 30) {            // nach ~30 s aufgeben statt Restart
+        if (cnt > 30) {
+            // nach ~30 s aufgeben statt Restart
             digitalWrite(LED, LED_OFF);
             return;
         }
@@ -65,7 +65,7 @@ inline void reconnect() {
             // client.subscribe("testJSON");
             break;
         }
-        if (i < 2) { delay(5000); }   // zwischen Versuchen warten, nach dem letzten nicht
+        if (i < 2) { delay(5000); } // zwischen Versuchen warten, nach dem letzten nicht
     }
 
     if (client.connected()) {
@@ -75,58 +75,6 @@ inline void reconnect() {
         failedCalls++;
         digitalWrite(LED, LED_OFF);
         if (failedCalls >= 3) { ESP.restart(); }
-    }
-}
-
-inline void callback(char *topic, byte *message, unsigned int length) {
-    //Serial.print("Message arrived on topic: ");
-    //Serial.print(topic);
-    //Serial.print(". Message: ");
-    String messageTemp;
-    for (int i = 0; i < length; i++) {
-        messageTemp += static_cast<char>(message[i]);
-    }
-    //Serial.println(messageTemp);
-
-    if (String(topic) == "test") {
-        //Serial.print("From test topic : ");
-        //Serial.println(messageTemp);
-    } else if (String(topic) == "ledState") {
-        if (messageTemp == "on") {
-            digitalWrite(LED, LED_ON);
-        } else if (messageTemp == "off") {
-            digitalWrite(LED, LED_OFF);
-        }
-    } else if (String(topic) == "testJSON") {
-        // Allocate the JSON document
-        JsonDocument doc;
-
-        // JSON input string.
-        // const char* json = "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
-
-        // Deserialize the JSON document
-        DeserializationError error = deserializeJson(doc, messageTemp);
-
-        // Test if parsing succeeds.
-        if (error) {
-            //Serial.print(F("deserializeJson() failed: "));
-            //Serial.println(error.f_str());
-            return;
-        }
-
-        const char *device = doc["device"];
-        int temperature = doc["temperature"];
-        int humidity = doc["humidity"];
-        int lux = doc["lux"];
-
-        //Serial.print("From test topic : ");
-        //Serial.print(device);
-        //Serial.print(" ; ");
-        //Serial.print(temperature);
-        //Serial.print(" ; ");
-        //Serial.print(humidity);
-        //Serial.print(" ; ");
-        //Serial.println(lux);
     }
 }
 
