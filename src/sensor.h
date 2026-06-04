@@ -14,16 +14,18 @@ public:
         return true;
     }
 
-    // Gibt Abstand in cm zurück, -1 bei Fehler
+    // Gibt Abstand in cm zurück, -1 bei Fehler.
+    // Sammelt SAMPLES Messungen und gibt den Median zurück. Der Median ist
+    // robust gegen einzelne Fehlechos (Ausreißer), die einen Mittelwert stark
+    // verfälschen würden, und liefert immer einen eindeutigen Wert.
     int readCm() {
-        long total = 0;
+        int values[SAMPLES];
         int count = 0;
 
         for (int i = 0; i < SAMPLES; i++) {
             long cm = measure();
             if (cm > 0) {
-                total += cm;
-                count++;
+                values[count++] = static_cast<int>(cm);
             }
             delay(30);
         }
@@ -33,7 +35,21 @@ public:
             return -1;
         }
 
-        int cm = total / count;
+        // aufsteigend sortieren (Insertion Sort, kleine Datenmenge)
+        for (int i = 1; i < count; i++) {
+            int key = values[i];
+            int j = i - 1;
+            while (j >= 0 && values[j] > key) {
+                values[j + 1] = values[j];
+                j--;
+            }
+            values[j + 1] = key;
+        }
+
+        // Median: mittlerer Wert; bei gerader Anzahl Mittel der beiden mittleren
+        int cm = (count % 2 == 1)
+                     ? values[count / 2]
+                     : (values[count / 2 - 1] + values[count / 2]) / 2;
         //Serial.print("Sensor: ");
         //Serial.print(cm);
         //Serial.println(" cm");
@@ -41,7 +57,7 @@ public:
     }
 
 private:
-    static constexpr int SAMPLES = 5;
+    static constexpr int SAMPLES = 9;
 
     long measure() {
         digitalWrite(TRIGGER_PIN, LOW);

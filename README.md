@@ -57,7 +57,10 @@ Helligkeit schaltet es sich wieder ein.
 
 **Messprinzip:** Der Sensor misst den Abstand von seiner Unterseite zur Wasseroberfläche.
 Da die drei IBCs kommunizierend verbunden sind, ist der Füllstand in allen gleich.
-Pro Messung werden 5 Einzelwerte gemittelt.
+Pro Messung werden 9 Einzelwerte erfasst und der **Median** zurückgegeben. Der Median
+ist robust gegen einzelne Fehlechos (Ausreißer), die einen Mittelwert stark verfälschen
+würden, und liefert immer einen eindeutigen Wert. Ungültige Messungen (kein Echo) werden
+vorher aussortiert; liefert keine der 9 Messungen ein Echo, gilt der Wert als Fehler (−1).
 
 **Geometrie-Konstanten (`globals.h`):**
 
