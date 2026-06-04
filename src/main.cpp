@@ -43,14 +43,8 @@ void setup() {
 }
 
 void loop() {
-    if (!client.connected()) {
-        reconnect();
-    }
-    client.loop();
-
     unsigned long now = millis();
     int adc = ldr.readRaw();
-    bool wifiOk = (WiFi.status() == WL_CONNECTED);
     bool displayOn = (adc <= LDR_DARK_THRESHOLD);
     bool timeToPublish = (now - lastPublish >= MQTT_INTERVAL_MS);
 
@@ -61,11 +55,24 @@ void loop() {
         int level = (raw > 0) ? constrain(TANK_SENSOR_HEIGHT_CM - raw, 0, TANK_SENSOR_HEIGHT_CM) : -1;
         int pct = (level >= 0) ? constrain(level * 100 / TANK_OVERFLOW_CM, 0, 100) : -1;
 
+        // Display läuft unabhängig vom WLAN-Status
         if (displayOn) {
-            display.show(pct, wifiOk);
+            display.show(pct, WiFi.status() == WL_CONNECTED);
         }
-        if (timeToPublish && level >= 0) {
-            publish(level, pct, adc);
+
+        // WLAN/MQTT erst jetzt – kurz vor dem Zugriff – prüfen und ggf. aufbauen
+        if (timeToPublish) {
+            if (!client.connected()) {
+                reconnect();
+            }
+            if (client.connected()) {
+                client.loop();
+                if (level >= 0) {
+                    publish(level, pct, adc);
+                }
+            }
+            // Intervall (und den Restart-Zähler in reconnect) im 5-Min-Takt halten,
+            // auch wenn die Verbindung gerade nicht steht
             lastPublish = now;
         }
     }

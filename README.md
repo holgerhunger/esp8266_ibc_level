@@ -29,8 +29,10 @@ Pin-Belegungen, Schwellwerte und Intervalle: `src/globals.h`.
 
 ## B. LED (Onboard, GPIO2, active LOW)
 
-- Leuchtet dauerhaft, solange keine WLAN-Verbindung besteht.
-- Leuchtet während MQTT-Verbindungsaufbau.
+- Leuchtet während des WLAN-/MQTT-Verbindungsaufbaus (d. h. in den Sende-Durchläufen,
+  in denen reconnect läuft).
+- Erlischt, sobald die MQTT-Verbindung steht bzw. der Verbindungsversuch beendet ist –
+  leuchtet also **nicht** dauerhaft, wenn kein WLAN vorhanden ist.
 - Zukünftig ggf. auch externe LED.
 
 ## C. Display
@@ -82,9 +84,18 @@ Beispiele:
 ## E. WLAN
 
 - Verbindung mit hinterlegtem SSID/Passwort (`myConfig.h`).
-- LED leuchtet dauerhaft während kein WLAN besteht.
-- Bei Verbindungsabbruch: automatischer Wiederverbindungsversuch.
-- Nach 30 Fehlversuchen beim WLAN-Aufbau bzw. 10 beim MQTT-Aufbau: ESP-Neustart.
+- LED leuchtet während des WLAN-/MQTT-Verbindungsaufbaus.
+- **Boot ohne WLAN:** Schlägt der WLAN-Aufbau beim Start fehl, wird **kein** Neustart
+  ausgelöst – das Gerät fährt trotzdem hoch und das Display zeigt Werte an.
+- **Verbindungsprüfung nur bei Bedarf:** WLAN/MQTT werden nicht in jedem Loop-Durchlauf,
+  sondern erst kurz vor einem MQTT-Publish geprüft und ggf. neu aufgebaut. Dadurch bleibt
+  das Display auch ohne WLAN funktionsfähig und reagiert flüssig.
+- **Reconnect:** Pro `reconnect()`-Aufruf werden max. **3 WLAN-** und **3 MQTT-Versuche**
+  unternommen (keine blockierende Endlosschleife).
+- **Neustart-Logik:** Erst nach dem **3. erfolglosen `reconnect()`-Aufruf in Folge** erfolgt
+  ein `ESP.restart()`. Da `reconnect()` nur im 5-Minuten-Publish-Takt aufgerufen wird, startet
+  das Gerät bei dauerhaftem Verbindungsverlust **frühestens nach ~15 Minuten** neu. Ein
+  erfolgreicher Verbindungsaufbau setzt den Zähler zurück.
 - Bei WLAN-Ausfall werden Messwerte verworfen (kein lokales Puffern).
 
 ## F. MQTT
@@ -93,6 +104,10 @@ Beispiele:
 **Topic:** `keller/ibc_level`  
 **Sendezyklus:** alle 5 Minuten (`MQTT_INTERVAL_MS` = 300 000 ms)  
 **QoS:** 0 (Fire and forget)
+
+Die MQTT-Verbindung wird nur zum Sendezeitpunkt hergestellt und nicht dauerhaft zwischen den
+Publishes gehalten. Vor jedem Publish wird bei Bedarf neu verbunden (siehe Reconnect-Logik
+unter **E. WLAN**).
 
 **Datenformat:** JSON als String
 
@@ -131,12 +146,17 @@ Pro Messung werden 4 Einzelwerte gemittelt.
 Der Haupt-Loop läuft mit einem festen Takt von 5 Sekunden (`DISPLAY_INTERVAL_MS`).
 Messen und Publishen erfolgt abhängig vom Display-Zustand und dem MQTT-Timer:
 
-| Display-Zustand | Zeit seit letztem Publish | Sensor messen | Display aktualisieren | MQTT senden |
-|-----------------|---------------------------|---------------|-----------------------|-------------|
-| AN              | < 5 Minuten               | ✓             | ✓                     | –           |
-| AN              | ≥ 5 Minuten               | ✓             | ✓                     | ✓           |
-| AUS             | < 5 Minuten               | –             | –                     | –           |
-| AUS             | ≥ 5 Minuten               | ✓             | –                     | ✓           |
+| Display-Zustand | Zeit seit letztem Publish | Sensor messen | Display aktualisieren | WLAN/MQTT prüfen + senden |
+|-----------------|---------------------------|---------------|-----------------------|---------------------------|
+| AN              | < 5 Minuten               | ✓             | ✓                     | –                         |
+| AN              | ≥ 5 Minuten               | ✓             | ✓                     | ✓                         |
+| AUS             | < 5 Minuten               | –             | –                     | –                         |
+| AUS             | ≥ 5 Minuten               | ✓             | –                     | ✓                         |
+
+Die WLAN-/MQTT-Verbindung wird ausschließlich in den mit ✓ markierten Sende-Durchläufen
+geprüft und ggf. aufgebaut – im normalen Loop-Takt läuft nur die Display-Anzeige. So bleibt
+die Anzeige auch bei fehlendem WLAN flüssig.
 
 Beim Start wird `lastPublish` so initialisiert, dass das erste MQTT-Publish sofort beim
-ersten Loop-Durchlauf erfolgt.
+ersten Loop-Durchlauf erfolgt. Der Publish-Zeitstempel wird auch bei fehlgeschlagener
+Verbindung gesetzt, damit der 5-Minuten-Takt (und damit die Neustart-Zählung) stabil bleibt.
